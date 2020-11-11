@@ -1,6 +1,8 @@
 # Alfred workflow for Calendly
 
-An unofficial workflow for Calendly.
+Forked from https://github.com/promptworks/alfred-calendly
+
+An unofficial workflow for Calendly for **single use links**. 
 
 ## Usage
 
@@ -14,7 +16,7 @@ Example:
 
 ## Installation
 
-Download the [latest GitHub release](https://github.com/promptworks/alfred-calendly/releases) and double click it to install.
+Download the [latest GitHub release](https://github.com/popoaq/alfred-calendly/releases) and double click it to install.
 
 ## Updates
 
