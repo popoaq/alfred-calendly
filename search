@@ -5,6 +5,7 @@
 require 'uri'
 require 'open-uri'
 require 'json'
+require 'net/http'
 
 API_KEY_FILE = File.join(ENV.fetch('HOME'), ENV.fetch('config_api_key_file'))
 
@@ -31,6 +32,7 @@ def offer_auth
   ]
 end
 
+
 def icon_path(color_rgb)
   "./icons/event-type-color-#{color_rgb.sub('#', '')}.png".tap do |path|
     if !File.exist?(path)
@@ -39,9 +41,12 @@ def icon_path(color_rgb)
   end
 end
 
+
 offer_auth unless File.exist?(API_KEY_FILE)
+
 api_key = File.read(API_KEY_FILE)
 api_uri = URI.parse('https://calendly.com/api/v1/users/me/event_types')
+
 
 response = api_uri.open('X-TOKEN' => api_key) do |f|
   status, message = f.status
@@ -68,11 +73,31 @@ module MatchString
   end
 end
 
+api_uri_single_use = URI.parse('https://calendly.com/api/apps/extension/v1/users/me/event_type_single_use_links')
+
 items = raw_event_types.map do |raw_event_type|
   attr = ->(key) { raw_event_type.fetch('attributes').fetch(key) }
 
   next unless attr['active']
 
+  ############ BEGIN for retrieving single usage links ########
+  uuid = raw_event_type.fetch('id')
+
+  url = URI("https://calendly.com/api/apps/extension/v1/users/me/event_type_single_use_links")
+
+  https = Net::HTTP.new(url.host, url.port);
+  https.use_ssl = true
+
+  request = Net::HTTP::Post.new(url)
+  request["X-TOKEN"] = api_key
+  request["Content-Type"] = "multipart/form-data; boundary=--------------------------599330043042985038836445"
+  form_data = [['event_type_uuid', uuid]]
+  request.set_form form_data, 'multipart/form-data'
+  response = https.request(request)
+  booking_url = JSON.parse(response.read_body)['booking_url']
+
+  ############ END for retrieving single usage links ########
+  #
   subtitle = [
     "#{attr['duration']}m",
     attr['slug'],
@@ -82,7 +107,7 @@ items = raw_event_types.map do |raw_event_type|
   {
     uid: raw_event_type.fetch('id'),
     title: attr['name'],
-    arg: attr['url'],
+    arg: booking_url,
     icon: { path: icon_path(attr['color']) },
     subtitle: subtitle,
     match: MatchString.call(
